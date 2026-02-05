@@ -17,8 +17,9 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install Selenium
-        run: pip install selenium webdriver-manager
+      - name: Install Dependencies
+        # Added beautifulsoup4 here to fix your error
+        run: pip install requests beautifulsoup4
 
       - name: Run Scraper
         run: python bin_scraper.py
