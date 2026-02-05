@@ -12,40 +12,29 @@ jobs:
       - name: Checkout Your Repo
         uses: actions/checkout@v4
 
-      - name: Checkout UKBinCollectionData Repo
-        uses: actions/checkout@v4
-        with:
-          repository: 'robbrad/UKBinCollectionData'
-          path: 'uk_bin_repo'
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Install UKBin and Webdriver
+      - name: Install UKBin Tool Officially
         run: |
-          cd uk_bin_repo
-          pip install .
-          # Ensure Selenium and webdriver-manager are ready
+          # This installs the repo as a proper library in the cloud runner
+          pip install "uk-bin-collection @ git+https://github.com/robbrad/UKBinCollectionData.git"
+          # Also install selenium for browser support
           pip install selenium webdriver-manager
 
-      - name: Run Central Bedfordshire Scraper
+      - name: Run Scraper
         run: |
-          # 1. Move into the actual code directory
-          cd uk_bin_repo/uk_bin_collection/uk_bin_collection
-          
-          # 2. Tell Python the current folder is the base for imports
-          export PYTHONPATH=$PYTHONPATH:.
-          
-          # 3. RUN WITH THE FULL MODULE PATH
-          # We use 'councils.CentralBedfordshireCouncil' so it finds the file in the subfolder
-          python collect_data.py councils.CentralBedfordshireCouncil "https://www.centralbedfordshire.gov.uk/info/163/bins_and_waste_collections_-_check_bin_collection_days" -p "SG17 5SE" > ../../../bin_data.json
+          # Now we just call the command directly like an app.
+          # Note: We use the simple name 'CentralBedfordshireCouncil' because the app 
+          # handles the internal 'councils.' prefix automatically.
+          uk_bin_collection CentralBedfordshireCouncil "https://www.centralbedfordshire.gov.uk/info/163/bins_and_waste_collections_-_check_bin_collection_days" -p "SG17 5SE" > bin_data.json
 
       - name: Commit and Push Results
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add bin_data.json
-          git commit -m "Sync with UKBinCollectionData" || exit 0
+          git commit -m "Sync bin data" || exit 0
           git push
