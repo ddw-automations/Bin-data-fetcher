@@ -8,7 +8,6 @@ def get_bins():
     user_uprn = "100081251978" 
 
     s = requests.Session()
-    # Disable warnings for their SSL setup
     requests.packages.urllib3.disable_warnings()
 
     headers = {
@@ -17,14 +16,12 @@ def get_bins():
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     }
 
-    # Central Bedfordshire's specific multipart/form-data requirement
     files = {
         "postcode": (None, user_postcode),
         "address": (None, user_uprn),
     }
 
     try:
-        # Note: We hit the #my_bin_collections anchor as per the council script
         response = s.post(
             "https://www.centralbedfordshire.gov.uk/info/163/bins_and_waste_collections_-_check_bin_collection_day#my_bin_collections",
             headers=headers,
@@ -39,26 +36,34 @@ def get_bins():
             return []
 
         collections = []
-        # The site lists dates in <h3> and bin types in the text nodes following them
-        for bin_header in collections_div.find_all("h3"):
+        # Find all the date headers
+        headers_found = collections_div.find_all("h3")
+        
+        for bin_header in headers_found:
             date_text = bin_header.get_text(strip=True)
             try:
-                # Convert "Friday, 06 February 2026" to a standard date
                 collection_date = datetime.strptime(date_text, "%A, %d %B %Y")
                 
-                # Find the bin type (usually the next text node)
-                next_node = bin_header.next_sibling
-                while next_node:
-                    if next_node.name == "h3": break
-                    text = next_node.get_text(strip=True) if hasattr(next_node, 'get_text') else str(next_node).strip()
-                    if text and not text.isspace():
+                # Now we look at everything BETWEEN this <h3> and the next <h3>
+                current_node = bin_header.next_sibling
+                while current_node and current_node.name != "h3":
+                    # If it's a tag (like <p>) or a piece of text
+                    text = ""
+                    if hasattr(current_node, 'get_text'):
+                        text = current_node.get_text(strip=True)
+                    elif isinstance(current_node, str):
+                        text = current_node.strip()
+                    
+                    # If we found text that isn't empty, it's a bin type
+                    if text and len(text) > 3: # Ignore tiny fragments/artifacts
                         collections.append({
                             "type": text,
                             "collectionDate": collection_date.strftime("%Y-%m-%d")
                         })
-                        break
-                    next_node = next_node.next_sibling
+                    
+                    current_node = current_node.next_sibling
             except ValueError:
+                # This handles cases where <h3> might be "Current collection dates..." 
                 continue
 
         return collections
@@ -70,5 +75,9 @@ def get_bins():
 if __name__ == "__main__":
     data = get_bins()
     with open('bin_data.json', 'w') as f:
-        json.dump({"last_update": datetime.now().strftime("%Y-%m-%d %H:%M"), "bins": data}, f, indent=4)
-    print(f"Scrape complete. Found {len(data)} collections.")
+        json.dump({
+            "last_update": datetime.now().strftime("%Y-%m-%d %H:%M"), 
+            "uprn": "100081251978",
+            "bins": data
+        }, f, indent=4)
+    print(f"Scrape complete. Found {len(data)} bin entries.")
