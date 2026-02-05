@@ -3,41 +3,57 @@ from bs4 import BeautifulSoup
 import json
 from datetime import datetime
 
-# Central Beds Bin Checker for SG17 5SE
-URL = "https://www.centralbedfordshire.gov.uk/info/163/bins_and_waste_collections_-_check_bin_collection_days"
-POSTCODE = "SG17 5SE"
+def get_bin_data():
+    postcode = "SG17 5SE"
+    url = "https://www.centralbedfordshire.gov.uk/info/163/bins_and_waste_collections_-_check_bin_collection_days"
+    
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Origin': 'https://www.centralbedfordshire.gov.uk',
+        'Referer': url
+    }
 
-def scrape_bins():
     try:
-        # 1. Start a session to handle cookies if needed
         session = requests.Session()
+        # 1. Get the page to establish a session
+        session.get(url, headers=headers)
         
-        # 2. Fetch the page and submit the postcode
-        # Note: In a real scenario, you may need to find the specific form 'action' URL
-        response = session.post(URL, data={'postcode': POSTCODE})
+        # 2. Post the postcode to get the results
+        # Central Beds expects a 'postcode' field in the body
+        response = session.post(url, data={'postcode': postcode}, headers=headers)
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        # 3. Locate the data (Central Beds usually puts results in a specific div)
-        # This is a generic placeholder; you'll adjust based on the exact HTML tags found
-        bin_results = soup.find_all(class_="bin-result") 
+        bin_collections = []
         
-        # For now, let's create a clean output for your e290
-        # You can refine the 'find' logic once you see the site's live HTML
-        data = {
-            "last_update": datetime.now().strftime("%Y-%m-%d %H:%M"),
-            "postcode": POSTCODE,
-            "bins": [
-                {"type": "Domestic (Black)", "date": "Wednesday 11th Feb"},
-                {"type": "Recycling (Green/Orange)", "date": "Wednesday 18th Feb"}
-            ]
-        }
+        # The UKBinCollectionData logic looks for the 'bin-result' class
+        # within the Jadu platform layout
+        results = soup.find_all('div', class_='bin-result')
+        
+        for res in results:
+            # Each div usually contains an <h3> for the bin type and a <p> for the date
+            bin_type = res.find('h3').get_text(strip=True) if res.find('h3') else "Unknown"
+            bin_date = res.find('p').get_text(strip=True) if res.find('p') else "Unknown"
+            
+            bin_collections.append({
+                "type": bin_type,
+                "date": bin_date
+            })
 
-        with open('bin_data.json', 'w') as f:
-            json.dump(data, f, indent=4)
-        print("Successfully updated bin_data.json")
+        return bin_collections
 
     except Exception as e:
-        print(f"Error scraping: {e}")
+        return [{"type": "Error", "date": str(e)}]
+
+def main():
+    bins = get_bin_data()
+    output = {
+        "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "collections": bins
+    }
+    
+    with open('bin_data.json', 'w') as f:
+        json.dump(output, f, indent=4)
+    print(f"Scraped {len(bins)} bin collections.")
 
 if __name__ == "__main__":
-    scrape_bins()
+    main()
