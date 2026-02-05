@@ -1,0 +1,32 @@
+name: Bin Data Scraper
+
+on:
+  schedule:
+    - cron: '0 4 * * *' # Runs at 4:00 AM UTC every day
+  workflow_dispatch: # Allows you to run it manually for testing
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4
+
+      - name: Run scraper
+        run: python bin_scraper.py
+
+      - name: Commit and Push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add bin_data.json
+          git commit -m "Update bin dates" || exit 0
+          git push
