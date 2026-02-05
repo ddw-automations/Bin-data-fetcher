@@ -4,61 +4,77 @@ import json
 from datetime import datetime
 
 def get_bins():
-    url = "https://www.centralbedfordshire.gov.uk/info/163/bins_and_waste_collections_-_check_bin_collection_days"
-    postcode = "SG17 5SE"
-    
-    # This logic mimics the UKBinCollectionData 'Jadu' parser
+    # SETTINGS - Adjust these
+    user_postcode = "SG17 5SE"
+    user_uprn = "100081251978" # This is a sample UPRN for that postcode. 
+                               # Update this with your specific one if needed.
+
+    s = requests.Session()
+    requests.packages.urllib3.disable_warnings()
+
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        "Origin": "https://www.centralbedfordshire.gov.uk",
+        "Referer": "https://www.centralbedfordshire.gov.uk/info/163/bins_and_waste_collections_-_check_bin_collection_day",
+        "User-Agent": "Mozilla/5.0 (Linux; Android 8.0; Pixel 2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/40.0.7968.1811 Mobile Safari/537.36",
     }
-    
-    session = requests.Session()
-    
+
+    # This matches the council's specific 'multipart' requirement
+    files = {
+        "postcode": (None, user_postcode),
+        "address": (None, user_uprn),
+    }
+
     try:
-        # 1. Load the page to get session cookies
-        response = session.get(url, headers=headers)
+        response = s.post(
+            "https://www.centralbedfordshire.gov.uk/info/163/bins_and_waste_collections_-_check_bin_collection_day#my_bin_collections",
+            headers=headers,
+            files=files,
+            verify=False
+        )
         
-        # 2. Post the postcode
-        # Central Beds expects the 'postcode' field in a POST request
-        payload = {'postcode': postcode}
-        response = session.post(url, data=payload, headers=headers)
+        soup = BeautifulSoup(response.content, "html.parser")
+        collections_div = soup.find(id="collections")
         
-        soup = BeautifulSoup(response.text, 'html.parser')
-        bin_data = []
+        if not collections_div:
+            print("Could not find the 'collections' ID on the page.")
+            return []
 
-        # This is the exact CSS selector logic the repo uses for this council
-        results = soup.find_all('div', class_='bin-result')
-        
-        for res in results:
-            bin_type = res.find('h3').get_text(strip=True) if res.find('h3') else "Unknown"
-            # Get the text from the paragraph, removing the "Next collection:" prefix
-            bin_date = res.find('p').get_text(strip=True).replace('Next collection:', '').strip() if res.find('p') else "Unknown"
-            
-            bin_data.append({
-                "type": bin_type,
-                "collectionDate": bin_date
-            })
+        collections = []
+        # Their logic: find the date in <h3> and then the bin type in the text following it
+        for bin_header in collections_div.find_all("h3"):
+            collection_date_str = bin_header.text.strip()
+            try:
+                collection_date = datetime.strptime(collection_date_str, "%A, %d %B %Y")
+                
+                # Look for the bin type text following the <h3>
+                next_node = bin_header.next_sibling
+                while next_node:
+                    if next_node.name == "h3": # Stop if we hit the next date
+                        break
+                    if isinstance(next_node, str) and next_node.strip():
+                        bin_type = next_node.strip()
+                        collections.append({
+                            "type": bin_type,
+                            "collectionDate": collection_date.strftime("%d/%m/%Y")
+                        })
+                        break
+                    next_node = next_node.next_sibling
+            except ValueError:
+                continue
 
-        return bin_data
+        # Sort by date
+        return sorted(collections, key=lambda x: datetime.strptime(x['collectionDate'], "%d/%m/%Y"))
 
     except Exception as e:
         print(f"Error: {e}")
         return []
 
-def main():
-    data = get_bins()
+if __name__ == "__main__":
+    bin_data = get_bins()
     output = {
         "last_update": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "bins": data
+        "bins": bin_data
     }
-    
     with open('bin_data.json', 'w') as f:
         json.dump(output, f, indent=4)
-    
-    if data:
-        print(f"Success! Found {len(data)} bin types.")
-    else:
-        print("Failed to find any bin data. Check the postcode or site status.")
-
-if __name__ == "__main__":
-    main()
+    print(f"Done. Found {len(bin_data)} bins.")
