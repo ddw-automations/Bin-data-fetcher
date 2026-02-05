@@ -1,0 +1,28 @@
+name: Master Display Update
+
+on:
+  schedule:
+    - cron: '0 5 * * *'  # Runs at 5 AM
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Dependencies
+        run: pip install requests beautifulsoup4
+      - name: Run Master Scraper
+        run: python master_scraper.py
+      - name: Commit and Push
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add display.json
+          git commit -m "Update master display data" || exit 0
+          git push
