@@ -1,13 +1,5 @@
 {
-    "last_update": "2026-02-05 11:29",
-    "bins": [
-        {
-            "type": "Food waste",
-            "collectionDate": "2026-02-11"
-        },
-        {
-            "type": "Refuse (black bin)",
-            "collectionDate": "2026-02-11"
-        }
-    ]
+    "last_update": "2026-02-05 11:37",
+    "display_line_1": "Next collection: 11/02/26",
+    "display_line_2": "Bins: Food waste & Black bin"
 }
