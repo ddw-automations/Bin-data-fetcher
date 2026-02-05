@@ -1,0 +1,32 @@
+name: Octopus Price Update
+
+on:
+  schedule:
+    - cron: '30 11 * * *' # Runs at 11:30 AM (just after Octopus usually publishes)
+  workflow_dispatch:      # Allows manual testing
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Dependencies
+        run: pip install requests
+
+      - name: Run Octopus Scraper
+        run: python octopus_tracker.py
+
+      - name: Commit and Push
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add octopus_data.json
+          git commit -m "Update Octopus tracker prices" || exit 0
+          git push
