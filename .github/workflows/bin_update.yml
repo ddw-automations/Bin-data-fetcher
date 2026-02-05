@@ -2,8 +2,8 @@ name: UKBinCollectionData Sync
 
 on:
   schedule:
-    - cron: '0 4 * * *'  # Runs at 4:00 AM UTC
-  workflow_dispatch:      # Allows manual testing
+    - cron: '0 4 * * *'
+  workflow_dispatch:
 
 jobs:
   run_uk_bin_script:
@@ -23,17 +23,16 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install UKBin Dependencies
+      - name: Install UKBin Package
         run: |
           cd uk_bin_repo
           pip install .
-          pip install -r requirements.txt
+          # Removed the requirements.txt line that was failing
 
       - name: Run Central Bedfordshire Scraper
         run: |
-          # Set the path so Python can find the uk_bin_collection module
           export PYTHONPATH="${PYTHONPATH}:$(pwd)/uk_bin_repo"
-          # Run the scraper module and output to bin_data.json
+          # We run the module and output the result to a file
           python -m uk_bin_collection.uk_bin_collection.collect_data CentralBedfordshireCouncil "https://www.centralbedfordshire.gov.uk/info/163/bins_and_waste_collections_-_check_bin_collection_days" -p "SG17 5SE" > bin_data.json
 
       - name: Commit and Push Results
