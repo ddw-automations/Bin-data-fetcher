@@ -1,0 +1,33 @@
+name: Live Bin Data Update
+
+on:
+  schedule:
+    - cron: '0 4 * * *'  # Runs at 4:00 AM UTC every day
+  workflow_dispatch:      # Allows you to click "Run workflow" manually
+
+jobs:
+  scrape_bins:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        run: |
+          pip install requests beautifulsoup4
+
+      - name: Run Scraper
+        run: python bin_scraper.py
+
+      - name: Commit and Push Changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add bin_data.json
+          git commit -m "Update live bin collections" || exit 0
+          git push
