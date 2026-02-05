@@ -6,7 +6,7 @@ from datetime import datetime
 # Region A = Eastern England (includes Shefford/Bedfordshire)
 REGION = "A"
 # Standard Tracker Product Code for 2026
-PRODUCT = "SILVER-24-12-31"
+PRODUCT = "SILVER-23-12-06"
 
 def get_octopus_prices():
     today = datetime.now().strftime('%Y-%m-%d')
