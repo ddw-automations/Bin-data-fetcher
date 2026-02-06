@@ -87,7 +87,9 @@ def get_weather():
             code = hourly['weathercode'][t]
             temp = round(hourly['temperature_2m'][t])
             icon = WMO_MAP.get(code, "☁️")
-            forecast_parts.append(f"{t}h:{icon}{temp}°")
+            # Format time to be 08:00 instead of 8h
+            formatted_time = f"{t:02d}:00"
+            forecast_parts.append(f"{formatted_time}:{icon}{temp}°")
         return {"line5": " ".join(forecast_parts)}
     except: return {"line5": "Weather: N/A"}
 
