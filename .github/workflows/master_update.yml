@@ -2,7 +2,10 @@ name: Master Display Update
 
 on:
   schedule:
-    - cron: '0 5 * * *'  # Runs at 5 AM
+    # Runs at 15 past the hour to catch the latest weather model ticks
+    # 07:15 (Morning Prep), 11:15 (Midday/Pre-school run), 
+    # 15:15 (School run), 19:15 (Evening)
+    - cron: '15 7,11,15,19 * * *'
   workflow_dispatch:
 
 jobs:
