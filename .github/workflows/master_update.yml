@@ -1,7 +1,7 @@
 name: Master Update
 on:
   schedule:
-    - cron: '*/15 * * * *' # Set to run every 15 mins temporarily for testing
+    - cron: '*/17 * * * *' # Set to run every 17 mins temporarily for testing
   workflow_dispatch:
 jobs:
   update:
