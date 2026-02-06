@@ -2,30 +2,40 @@ name: Master Display Update
 
 on:
   schedule:
-    # Runs at 15 past the hour to catch the latest weather model ticks
-    # 07:15 (Morning Prep), 11:15 (Midday/Pre-school run), 
-    # 15:15 (School run), 19:15 (Evening)
-    - cron: '15 7,11,15,19 * * *'
+    # Runs at 12 minutes past every hour
+    - cron: '12 * * * *'
   workflow_dispatch:
+  push:
+    paths:
+      - 'master_scraper.py'
 
 jobs:
   update:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
       - name: Install Dependencies
         run: pip install requests beautifulsoup4
+
       - name: Run Master Scraper
         run: python master_scraper.py
+
       - name: Commit and Push
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add display.json
-          git commit -m "Update master display data" || exit 0
+          # Includes the timestamp in the commit message for easy tracking
+          git commit -m "Hourly Update: $(date -u +'%H:%M UTC')" || exit 0
           git push
