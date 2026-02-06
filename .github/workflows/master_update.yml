@@ -1,41 +1,27 @@
-name: Master Display Update
-
+name: Master Update
 on:
   schedule:
-    # Runs at 12 minutes past every hour
-    - cron: '12 * * * *'
+    - cron: '*/15 * * * *' # Set to run every 15 mins temporarily for testing
   workflow_dispatch:
-  push:
-    paths:
-      - 'master_scraper.py'
-
 jobs:
   update:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
+      - uses: actions/checkout@v4
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: Install Dependencies
+      - name: Dependencies
         run: pip install requests beautifulsoup4
-
-      - name: Run Master Scraper
+      - name: Run
         run: python master_scraper.py
-
-      - name: Commit and Push
+      - name: Push
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add display.json
-          # Includes the timestamp in the commit message for easy tracking
-          git commit -m "Hourly Update: $(date -u +'%H:%M UTC')" || exit 0
+          git commit -m "Test Trigger" || exit 0
           git push
